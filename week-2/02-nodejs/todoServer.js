@@ -39,11 +39,105 @@
 
   Testing the server - run `npm run test-todoServer` command in terminal
  */
-  const express = require('express');
-  const bodyParser = require('body-parser');
-  
-  const app = express();
-  
-  app.use(bodyParser.json());
-  
-  module.exports = app;
+const express = require("express");
+const bodyParser = require("body-parser");
+const { v4: uuidv4 } = require("uuid");
+
+const app = express();
+
+app.use(bodyParser.json());
+app.use(express.json());
+
+let todos = [
+  {
+    title: "First todo",
+    desc: "First desc",
+    completed: "false",
+    id: uuidv4(),
+  },
+];
+
+//get todos
+app.get("/todos", (req, res) => {
+  return res.status(200).json(todos);
+});
+
+//get single todo
+app.get("/todos/:id", (req, res) => {
+  const todoID = req.params.id;
+  for (let i = 0; i < todos.length; i++) {
+    if (todos[i].id === todoID) {
+      res.status(200).json(todos[i]);
+      return;
+    } else {
+      res.status(404).send();
+    }
+  }
+});
+
+//create todos
+app.post("/todos", (req, res) => {
+  const title = req.body.title;
+  const desc = req.body.desc;
+  const completed = req.body.completed;
+  const id = uuidv4();
+
+  const todoObj = {
+    title,
+    desc,
+    completed,
+    id,
+  };
+
+  todos.push(todoObj);
+  return res.status(201).json(todoObj);
+});
+
+//update todo
+app.put("/todos/:id", (req, res) => {
+  const todoID = req.params.id;
+  const { title, desc, completed } = req.body;
+
+  for (let i = 0; i < todos.length; i++) {
+    if (todos[i].id === todoID) {
+      if (title) {
+        todos[i].title = title;
+      }
+      if (desc) {
+        todos[i].desc = desc;
+      }
+      if (completed) {
+        todos[i].completed = completed;
+      }
+    } else {
+      res.status(404).send();
+    }
+  }
+});
+
+//delete todo
+app.delete("/todos/:id", (req, res) => {
+  const todoID = req.params.id;
+  const filteredTodos = [];
+  for (let i = 0; i < todos.length; i++) {
+    if (todos[i].id !== todoID) {
+      filteredTodos.push(todos[i]);
+    }
+  }
+
+  if (filteredTodos.length === todos.length) {
+    return res.status(404).send({ error: `Todo with ID ${todoID} not found!` });
+  }
+
+  todos = filteredTodos;
+  return res
+    .status(200)
+    .send({ msg: `Todo with ID ${todoID} deleted successfully!` });
+});
+
+app.use((req, res, next) => {
+  res.status(404).send();
+});
+
+app.listen(3000);
+module.exports = app;
